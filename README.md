@@ -4,7 +4,7 @@ Tidsregnskab med eftertanke: hvilke timer ville du vælge igen?
 Appen ligger på GitHub Pages og kan installeres på telefonen med eget ikon. Data gemmes kun på telefonen.
 Opdelingen af dagen i blokke klares af en AI-model på Cloudflares gratis kvote. Der kræves ingen betalingsoplysninger.
 
-**Appens adresse:** <https://mr-nielsen.github.io/eftertanke/>
+**Appens adresse:** <https://mr-nielsen.github.io/Eftertanke/>
 
 ## Indhold
 
@@ -35,7 +35,7 @@ Den gratis kvote er 10.000 "neurons" om dagen. Én opdeling af en dag bruger cir
 
 ## 3. Forbind appen og installér den
 
-1. Åbn <https://mr-nielsen.github.io/eftertanke/> på telefonen (iPhone: brug Safari).
+1. Åbn <https://mr-nielsen.github.io/Eftertanke/> på telefonen (iPhone: brug Safari).
 2. Installér den:
    - **iPhone:** Del-knappen → *Føj til hjemmeskærm*
    - **Android:** menuen ⋮ → *Installer app*
