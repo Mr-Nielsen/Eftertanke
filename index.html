@@ -1,0 +1,563 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Eftertanke</title>
+<meta name="description" content="Tidsregnskab med eftertanke: hvilke timer ville du vælge igen?">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Eftertanke">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f3f5f2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141917" media="(prefers-color-scheme: dark)">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one narrow column, a day-ledger on top and the pattern reading below. */
+:root {
+  --bg: #f3f5f2; --surface: #ffffff; --fg: #1d2420; --muted: #5f6b64; --line: #d9dfda;
+  --accent: #2f6b5a; --accent-soft: #e2eee8; --keep: #2f6b5a; --keep-soft: #d7ebe2;
+  --regret: #b4533c; --regret-soft: #f5e1da; --unrated: #c4ccc6;
+  --f-display: "Newsreader", Georgia, "Times New Roman", serif;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #141917; --surface: #1c2320; --fg: #e6ece8; --muted: #9aa8a0; --line: #2e3833;
+    --accent: #7cc3a8; --accent-soft: #23342d; --keep: #6fbb9d; --keep-soft: #213a30;
+    --regret: #e38a72; --regret-soft: #3d2620; --unrated: #45514b; color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--f-body); font-size: 15px; line-height: 1.5; -webkit-tap-highlight-color: transparent; }
+[hidden] { display: none !important; }
+.wrap { max-width: 640px; margin: 0 auto; padding-top: calc(env(safe-area-inset-top, 0px) + 20px); padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 56px); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 28px; }
+h1, h2 { font-family: var(--f-display); font-weight: 600; margin: 0; text-wrap: balance; }
+h1 { font-size: 2.1rem; line-height: 1.1; letter-spacing: -0.01em; }
+h2 { font-size: 1.35rem; }
+.lede { color: var(--muted); margin: 6px 0 0; max-width: 52ch; }
+.eyebrow { font-size: 0.72rem; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 8px 12px; font-size: 0.9rem; font-weight: 500; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+.btn[disabled] { opacity: .55; cursor: default; }
+.ghost { border: 0; background: none; padding: 6px 8px; border-radius: 6px; color: var(--muted); }
+.ghost:hover { background: var(--accent-soft); color: var(--fg); }
+
+.daynav { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.daynav .date { font-family: var(--f-display); font-size: 1.35rem; font-weight: 600; text-transform: capitalize; text-align: center; flex: 1; min-width: 0; }
+.daynav .sub { display: block; font-family: var(--f-body); font-size: 0.8rem; color: var(--muted); font-weight: 400; text-transform: none; }
+.arrow { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); font-size: 1.1rem; }
+.arrow[disabled] { opacity: .35; cursor: default; }
+.daybar { display: flex; height: 10px; border-radius: 5px; overflow: hidden; background: var(--line); margin-top: 12px; }
+.daybar span { display: block; height: 100%; }
+
+.sheet { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.blocks { list-style: none; margin: 0; padding: 0; }
+.block { display: grid; grid-template-columns: auto 1fr auto; gap: 6px 10px; padding: 12px 14px; border-top: 1px solid var(--line); align-items: center; }
+.block:first-child { border-top: 0; }
+.times { display: flex; align-items: center; gap: 4px; }
+.times input { font-family: var(--f-mono); font-size: 0.9rem; border: 1px solid transparent; background: transparent; color: var(--fg); padding: 2px; border-radius: 4px; width: 5.8em; }
+.times input:hover { border-color: var(--line); }
+.times .dash { color: var(--muted); }
+.meta { min-width: 0; display: grid; gap: 2px; }
+.meta select { font-size: 0.75rem; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; border: 0; background: transparent; padding: 0; max-width: 100%; }
+.meta input { font-size: 16px; border: 0; border-bottom: 1px dashed transparent; background: transparent; color: var(--fg); padding: 0; width: 100%; min-width: 0; }
+.meta input:focus { border-bottom-color: var(--line); outline: none; }
+.verdict { display: flex; gap: 4px; }
+.vbtn { width: 42px; height: 38px; border-radius: 8px; border: 1px solid var(--line); background: transparent; font-size: 1.05rem; line-height: 1; filter: grayscale(1); opacity: .55; }
+.vbtn.on.keep { background: var(--keep-soft); border-color: var(--keep); filter: none; opacity: 1; }
+.vbtn.on.regret { background: var(--regret-soft); border-color: var(--regret); filter: none; opacity: 1; }
+.del { grid-column: 3; justify-self: end; font-size: 0.8rem; }
+@media (max-width: 480px) {
+  .block { grid-template-columns: 1fr auto; }
+  .times { grid-column: 1; grid-row: 1; }
+  .del { grid-column: 2; grid-row: 1; }
+  .meta { grid-column: 1; grid-row: 2; }
+  .verdict { grid-column: 2; grid-row: 2; }
+}
+.empty { padding: 22px 18px; display: grid; gap: 12px; }
+.empty p { margin: 0; color: var(--muted); max-width: 46ch; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.sheetfoot { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--line); background: var(--bg); }
+
+.dictate { display: grid; gap: 10px; }
+.dictate textarea, .field input { width: 100%; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--fg); padding: 12px; font: inherit; font-size: 16px; line-height: 1.5; }
+.dictate textarea { min-height: 110px; resize: vertical; }
+.hint { font-size: 0.85rem; color: var(--muted); margin: 0; max-width: 60ch; }
+.status { font-size: 0.88rem; color: var(--muted); min-height: 1.3em; margin: 0; }
+.status.err { color: var(--regret); }
+
+.patterns { display: grid; gap: 18px; }
+.headline { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.big { font-family: var(--f-display); font-size: 3rem; font-weight: 600; line-height: 1; color: var(--keep); font-variant-numeric: tabular-nums; }
+.headline p { margin: 0; color: var(--muted); max-width: 34ch; }
+.cats { display: grid; gap: 10px; }
+.cat { display: grid; grid-template-columns: minmax(0, 9.5em) 1fr 3.4em; gap: 10px; align-items: center; font-size: 0.88rem; }
+.cat .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cat .bar { display: flex; height: 14px; border-radius: 3px; overflow: hidden; }
+.cat .bar span { height: 100%; }
+.cat .hrs { text-align: right; color: var(--muted); font-size: 0.8rem; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+.strip { display: grid; grid-template-columns: repeat(14, minmax(0, 1fr)); gap: 4px; }
+.strip button { aspect-ratio: 1; max-width: 100%; border-radius: 4px; border: 1px solid transparent; padding: 0; background: var(--line); }
+.strip button.today { border-color: var(--fg); }
+.notes { display: grid; gap: 6px; font-size: 0.92rem; }
+.notes p { margin: 0; }
+
+.settings { border-top: 1px solid var(--line); padding-top: 18px; }
+.settings summary { cursor: pointer; font-weight: 600; list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.settings summary::-webkit-details-marker { display: none; }
+.settings summary::after { content: "+"; color: var(--muted); font-weight: 400; font-size: 1.2rem; }
+.settings[open] summary::after { content: "–"; }
+.settings .inner { display: grid; gap: 18px; margin-top: 14px; }
+.field { display: grid; gap: 4px; }
+.field label { font-size: 0.82rem; font-weight: 600; }
+.pill { display: inline-block; font-size: 0.72rem; font-weight: 600; letter-spacing: .04em; padding: 2px 8px; border-radius: 99px; background: var(--line); color: var(--muted); }
+.pill.ok { background: var(--keep-soft); color: var(--keep); }
+@media (prefers-reduced-motion: no-preference) {
+  .cat .bar span, .daybar span { transition: flex-basis .3s ease; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Tidsregnskab med eftertanke</div>
+    <h1>Eftertanke</h1>
+    <p class="lede">Ikke hvor timerne gik hen, men hvilke af dem du ville vælge igen. Udfyld dagen groft, og giv hver blok 👍 eller 👎.</p>
+  </header>
+
+  <section aria-labelledby="dayTitle">
+    <div class="daynav">
+      <button class="arrow" id="prevDay" aria-label="Forrige dag">‹</button>
+      <div class="date" id="dayTitle">…</div>
+      <button class="arrow" id="nextDay" aria-label="Næste dag">›</button>
+    </div>
+    <div class="daybar" id="dayBar" aria-hidden="true"></div>
+  </section>
+
+  <section class="sheet" aria-label="Dagens blokke">
+    <ul class="blocks" id="blocks"></ul>
+    <div class="empty" id="empty" hidden>
+      <p>Ingen blokke for denne dag endnu. Start med en skabelon og ret til, eller fortæl om dagen herunder.</p>
+      <div class="row">
+        <button class="btn primary" id="tplWork">Almindelig arbejdsdag</button>
+        <button class="btn" id="tplOff">Fridag</button>
+      </div>
+    </div>
+    <div class="sheetfoot" id="sheetFoot" hidden>
+      <button class="btn" id="addBlock">+ Tilføj blok</button>
+      <button class="ghost" id="clearDay">Ryd dagen</button>
+      <button class="ghost" id="confirmClear" hidden>Ja, ryd alt</button>
+    </div>
+  </section>
+
+  <section class="dictate" aria-labelledby="dictTitle">
+    <h2 id="dictTitle">Fortæl om dagen</h2>
+    <p class="hint">Tryk på mikrofonen på tastaturet og fortæl. Fx: “Mødet trak ud til halv tolv, frokost ved skrivebordet, hentede ungerne kl. 16, løb en tur 19–19.45, resten foran tv’et.” Claude laver det om til blokke og retter skabelonen til. Skriv kun groft om arbejdet, aldrig om patienter eller kolleger.</p>
+    <textarea id="dictText" placeholder="Hvad gik dagen med?"></textarea>
+    <div class="row">
+      <button class="btn primary" id="dictGo">Lav blokke</button>
+    </div>
+    <p class="status" id="dictStatus" role="status"></p>
+  </section>
+
+  <section class="patterns" aria-labelledby="patTitle">
+    <div>
+      <div class="eyebrow">De seneste 28 dage</div>
+      <h2 id="patTitle">Mønstre</h2>
+    </div>
+    <div id="patBody"></div>
+  </section>
+
+  <details class="settings" id="settings">
+    <summary>Indstillinger og backup <span class="pill" id="dictPill">Diktering ikke sat op</span></summary>
+    <div class="inner">
+      <div class="field">
+        <label for="workerUrl">Adresse på din diktat-tjeneste</label>
+        <input id="workerUrl" type="url" inputmode="url" autocomplete="off" placeholder="https://eftertanke.dit-navn.workers.dev">
+      </div>
+      <div class="field">
+        <label for="appKey">Adgangskode</label>
+        <input id="appKey" type="password" autocomplete="off" placeholder="Den kode du gav APP_KEY i Cloudflare">
+      </div>
+      <div class="row">
+        <button class="btn primary" id="saveSettings">Gem</button>
+        <button class="btn" id="testSettings">Test forbindelsen</button>
+      </div>
+      <p class="status" id="settingsStatus" role="status"></p>
+
+      <div class="field">
+        <span class="eyebrow">Backup</span>
+        <p class="hint">Alt gemmes kun på denne telefon. Gem en backup en gang imellem, fx i Filer eller iCloud Drive.</p>
+        <div class="row">
+          <button class="btn" id="exportBtn">Gem backup</button>
+          <button class="btn" id="importBtn">Hent backup</button>
+          <input type="file" id="importFile" accept="application/json,.json" hidden>
+        </div>
+        <p class="status" id="backupStatus" role="status"></p>
+      </div>
+    </div>
+  </details>
+</div>
+
+<script>
+const CATS = [
+  { id: "moeder", name: "Arbejde · møder", color: "#5b7fa6" },
+  { id: "fokus", name: "Arbejde · fokus", color: "#3d6f8f" },
+  { id: "drift", name: "Arbejde · drift/support", color: "#7d93a8" },
+  { id: "transport", name: "Transport", color: "#9a8f7a" },
+  { id: "familie", name: "Familie", color: "#c0864f" },
+  { id: "venner", name: "Venner", color: "#c46f7d" },
+  { id: "motion", name: "Motion", color: "#6c9a5e" },
+  { id: "hjem", name: "Hjemmet & ærinder", color: "#a7966b" },
+  { id: "projekter", name: "Egne projekter", color: "#8a6fb0" },
+  { id: "skaerm", name: "Skærm & underholdning", color: "#8c8c9e" },
+  { id: "pause", name: "Pause & mad", color: "#b3a35f" },
+  { id: "andet", name: "Andet", color: "#9aa39d" }
+];
+const CAT = Object.fromEntries(CATS.map(c => [c.id, c]));
+
+const TEMPLATES = {
+  arbejde: [
+    ["06:45", "07:45", "familie", "Morgen med familien"],
+    ["07:45", "08:15", "transport", "Til arbejde"],
+    ["08:15", "10:00", "fokus", "Fokusarbejde"],
+    ["10:00", "11:30", "moeder", "Møder"],
+    ["11:30", "12:00", "pause", "Frokost"],
+    ["12:00", "14:00", "fokus", "Udvikling"],
+    ["14:00", "15:00", "drift", "Drift og henvendelser"],
+    ["15:00", "15:30", "transport", "Hjem"],
+    ["15:30", "19:30", "familie", "Eftermiddag og aftensmad"],
+    ["19:30", "22:00", "skaerm", "Aften"]
+  ],
+  fri: [
+    ["07:00", "09:00", "familie", "Morgen"],
+    ["09:00", "12:00", "hjem", "Formiddag"],
+    ["12:00", "13:00", "pause", "Frokost"],
+    ["13:00", "17:00", "familie", "Eftermiddag"],
+    ["17:00", "19:30", "familie", "Aftensmad"],
+    ["19:30", "22:00", "skaerm", "Aften"]
+  ]
+};
+
+// ---------- helpers ----------
+const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(2, "0");
+const keyOf = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const fromKey = k => { const [y, m, d] = k.split("-").map(Number); return new Date(y, m - 1, d); };
+const addDays = (k, n) => { const d = fromKey(k); d.setDate(d.getDate() + n); return keyOf(d); };
+const toMin = t => { if (!t || !/^\d{1,2}:\d{2}$/.test(t)) return null; const [h, m] = t.split(":").map(Number); return h * 60 + m; };
+const dur = b => { const s = toMin(b.start), e = toMin(b.end); if (s == null || e == null) return 0; return e >= s ? e - s : e + 1440 - s; };
+const fmtH = min => { const h = min / 60; return (h >= 10 ? Math.round(h) : Math.round(h * 10) / 10).toString().replace(".", ",") + " t"; };
+const uid = () => Math.random().toString(36).slice(2, 9);
+let todayKey = keyOf(new Date());
+
+// ---------- storage (on this device) ----------
+const DATA_KEY = "eftertanke-days";
+const CFG_KEY = "eftertanke-settings";
+function load(k, fallback) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : fallback; } catch { return fallback; } }
+function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } }
+
+let days = load(DATA_KEY, {});
+let cfg = load(CFG_KEY, { url: "", key: "" });
+let current = todayKey;
+if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+
+function persist() {
+  if (!save(DATA_KEY, days)) setStatus("Kunne ikke gemme på telefonen. Tag en backup under Indstillinger.", true);
+}
+
+// ---------- day editing ----------
+function day(key = current) { return days[key] || { blocks: [] }; }
+function setBlocks(blocks, key = current) {
+  blocks.sort((a, b) => (toMin(a.start) ?? 0) - (toMin(b.start) ?? 0));
+  if (blocks.length) days[key] = { blocks }; else delete days[key];
+  persist(); render();
+}
+function updateBlock(id, patch, rerender = true) {
+  const blocks = day().blocks.map(b => b.id === id ? { ...b, ...patch } : b);
+  if (rerender) setBlocks(blocks); else { days[current] = { blocks }; persist(); renderHeader(); }
+}
+function applyTemplate(name) {
+  setBlocks(TEMPLATES[name].map(([start, end, cat, label]) => ({ id: uid(), start, end, cat, label, v: null })));
+}
+
+// ---------- render ----------
+function render() { renderHeader(); renderBlocks(); renderBars(); renderPatterns(); }
+
+function renderHeader() {
+  const d = fromKey(current);
+  const label = d.toLocaleDateString("da-DK", { weekday: "long", day: "numeric", month: "long" });
+  const rel = current === todayKey ? "I dag" : current === addDays(todayKey, -1) ? "I går" : "";
+  const t = $("dayTitle"); t.textContent = label;
+  const sub = document.createElement("span"); sub.className = "sub";
+  const blocks = day().blocks; const rated = blocks.filter(b => b.v).length;
+  sub.textContent = [rel, blocks.length ? `${rated} af ${blocks.length} blokke vurderet` : ""].filter(Boolean).join(" · ") || " ";
+  t.append(sub);
+  $("nextDay").disabled = current >= todayKey;
+}
+
+function renderBars() {
+  const bar = $("dayBar"); bar.innerHTML = "";
+  const blocks = day().blocks; const total = blocks.reduce((s, b) => s + dur(b), 0);
+  if (!total) return;
+  blocks.forEach(b => {
+    const s = document.createElement("span");
+    s.style.flexBasis = (dur(b) / total * 100) + "%";
+    s.style.background = b.v === "keep" ? "var(--keep)" : b.v === "regret" ? "var(--regret)" : "var(--unrated)";
+    bar.append(s);
+  });
+}
+
+function renderBlocks() {
+  const ul = $("blocks"); ul.innerHTML = "";
+  const blocks = day().blocks;
+  $("empty").hidden = blocks.length > 0;
+  $("sheetFoot").hidden = blocks.length === 0;
+  $("confirmClear").hidden = true;
+  blocks.forEach(b => {
+    const li = document.createElement("li"); li.className = "block";
+    const times = document.createElement("div"); times.className = "times";
+    const dash = document.createElement("span"); dash.className = "dash"; dash.textContent = "–";
+    times.append(timeInput(b.start, v => updateBlock(b.id, { start: v }), `start-${b.id}`, "Start"), dash, timeInput(b.end, v => updateBlock(b.id, { end: v }), `end-${b.id}`, "Slut"));
+
+    const meta = document.createElement("div"); meta.className = "meta";
+    const sel = document.createElement("select"); sel.id = `cat-${b.id}`; sel.setAttribute("aria-label", "Kategori");
+    CATS.forEach(c => { const o = document.createElement("option"); o.value = c.id; o.textContent = c.name; if (c.id === b.cat) o.selected = true; sel.append(o); });
+    sel.style.color = (CAT[b.cat] || CAT.andet).color;
+    sel.addEventListener("change", () => updateBlock(b.id, { cat: sel.value }));
+    const lab = document.createElement("input"); lab.id = `lab-${b.id}`; lab.value = b.label || ""; lab.placeholder = "Hvad lavede du?"; lab.setAttribute("aria-label", "Beskrivelse");
+    lab.addEventListener("input", () => updateBlock(b.id, { label: lab.value }, false));
+    meta.append(sel, lab);
+
+    const verdict = document.createElement("div"); verdict.className = "verdict"; verdict.setAttribute("role", "group"); verdict.setAttribute("aria-label", "Ville du vælge det igen?");
+    verdict.append(vBtn(b, "keep", "👍", "Ville vælge igen"), vBtn(b, "regret", "👎", "Ville ikke vælge igen"));
+
+    const del = document.createElement("button"); del.className = "ghost del"; del.textContent = "Fjern"; del.setAttribute("aria-label", `Fjern ${b.label || "blok"}`);
+    del.addEventListener("click", () => setBlocks(day().blocks.filter(x => x.id !== b.id)));
+    li.append(times, meta, verdict, del);
+    ul.append(li);
+  });
+}
+function timeInput(val, onChange, id, label) {
+  const i = document.createElement("input"); i.type = "time"; i.value = val || ""; i.id = id; i.setAttribute("aria-label", label);
+  i.addEventListener("change", () => onChange(i.value));
+  return i;
+}
+function vBtn(b, kind, sym, label) {
+  const btn = document.createElement("button");
+  btn.className = `vbtn ${kind}` + (b.v === kind ? " on" : "");
+  btn.textContent = sym; btn.title = label; btn.setAttribute("aria-label", label); btn.setAttribute("aria-pressed", b.v === kind);
+  btn.addEventListener("click", () => updateBlock(b.id, { v: b.v === kind ? null : kind }));
+  return btn;
+}
+
+function renderPatterns() {
+  const body = $("patBody"); body.innerHTML = "";
+  const keys = Array.from({ length: 28 }, (_, i) => addDays(todayKey, -27 + i));
+  const byCat = {}; let keep = 0, regret = 0, daysWith = 0;
+  keys.forEach(k => {
+    const bl = day(k).blocks; if (bl.length) daysWith++;
+    bl.forEach(b => {
+      const m = dur(b); const c = byCat[b.cat] || (byCat[b.cat] = { keep: 0, regret: 0, unrated: 0 });
+      if (b.v === "keep") { c.keep += m; keep += m; } else if (b.v === "regret") { c.regret += m; regret += m; } else c.unrated += m;
+    });
+  });
+  const rated = keep + regret;
+  if (!rated) {
+    const p = document.createElement("p"); p.className = "lede";
+    p.textContent = "Når du har vurderet nogle blokke, viser siden her, hvor stor en del af din tid du ville vælge igen, og hvilke slags tid der skiller sig ud. Mønstrene bliver tydelige efter en uges tid.";
+    body.append(p);
+  } else {
+    const head = document.createElement("div"); head.className = "headline";
+    const big = document.createElement("div"); big.className = "big"; big.textContent = Math.round(keep / rated * 100) + " %";
+    const p = document.createElement("p"); p.textContent = `af din vurderede tid ville du vælge igen. Det bygger på ${fmtH(rated)} fordelt på ${daysWith} ${daysWith === 1 ? "dag" : "dage"}.`;
+    head.append(big, p); body.append(head);
+
+    const rows = Object.entries(byCat).map(([id, v]) => ({ id, ...v, total: v.keep + v.regret + v.unrated })).sort((a, b) => b.total - a.total);
+    const max = Math.max(...rows.map(r => r.total));
+    const cats = document.createElement("div"); cats.className = "cats";
+    rows.forEach(r => {
+      const row = document.createElement("div"); row.className = "cat";
+      const n = document.createElement("div"); n.className = "name"; n.textContent = (CAT[r.id] || CAT.andet).name;
+      const bar = document.createElement("div"); bar.className = "bar";
+      [["keep", "var(--keep)"], ["regret", "var(--regret)"], ["unrated", "var(--unrated)"]].forEach(([k, col]) => {
+        if (!r[k]) return; const s = document.createElement("span"); s.style.flexBasis = (r[k] / max * 100) + "%"; s.style.background = col; bar.append(s);
+      });
+      const h = document.createElement("div"); h.className = "hrs mono"; h.textContent = fmtH(r.total);
+      row.append(n, bar, h); cats.append(row);
+    });
+    body.append(cats);
+    const leg = document.createElement("div"); leg.className = "legend";
+    leg.innerHTML = '<span><i style="background:var(--keep)"></i>Ville vælge igen</span><span><i style="background:var(--regret)"></i>Ville ikke</span><span><i style="background:var(--unrated)"></i>Ikke vurderet</span>';
+    body.append(leg);
+
+    const scored = rows.filter(r => r.keep + r.regret >= 120).map(r => ({ ...r, share: r.keep / (r.keep + r.regret) }));
+    if (scored.length >= 2) {
+      scored.sort((a, b) => b.share - a.share);
+      const best = scored[0], worst = scored[scored.length - 1];
+      const notes = document.createElement("div"); notes.className = "notes";
+      const line = (lead, r) => { const p = document.createElement("p"); const b = document.createElement("b"); b.textContent = (CAT[r.id] || CAT.andet).name; p.append(lead, b, `. ${Math.round(r.share * 100)} % ville du gentage.`); return p; };
+      notes.append(line("Mest værd: ", best));
+      if (worst.share < best.share) notes.append(line("Mindst værd: ", worst));
+      body.append(notes);
+    }
+  }
+  const lab = document.createElement("div"); lab.className = "eyebrow"; lab.textContent = "Dag for dag"; lab.style.marginTop = "6px";
+  const strip = document.createElement("div"); strip.className = "strip";
+  keys.forEach(k => {
+    const bl = day(k).blocks; let kp = 0, rg = 0;
+    bl.forEach(b => { if (b.v === "keep") kp += dur(b); else if (b.v === "regret") rg += dur(b); });
+    const btn = document.createElement("button");
+    const d = fromKey(k).toLocaleDateString("da-DK", { weekday: "short", day: "numeric", month: "short" });
+    if (kp + rg) {
+      const share = kp / (kp + rg);
+      btn.style.background = `color-mix(in oklab, var(--keep) ${Math.round(share * 100)}%, var(--regret))`;
+      btn.title = `${d}: ${Math.round(share * 100)} % værd at gentage`;
+    } else if (bl.length) { btn.style.background = "var(--unrated)"; btn.title = `${d}: ikke vurderet`; }
+    else btn.title = `${d}: ingen registrering`;
+    btn.setAttribute("aria-label", btn.title);
+    if (k === current) btn.classList.add("today");
+    btn.addEventListener("click", () => { current = k; render(); window.scrollTo({ top: 0, behavior: "smooth" }); });
+    strip.append(btn);
+  });
+  body.append(lab, strip);
+}
+
+// ---------- dictation (via your Cloudflare Worker) ----------
+function setStatus(msg, err = false, el = "dictStatus") { const s = $(el); s.textContent = msg; s.classList.toggle("err", err); }
+const dictReady = () => /^https:\/\//.test(cfg.url || "") && (cfg.key || "").length > 0;
+function renderSettings() {
+  $("workerUrl").value = cfg.url || ""; $("appKey").value = cfg.key || "";
+  const ok = dictReady(); const pill = $("dictPill");
+  pill.textContent = ok ? "Diktering klar" : "Diktering ikke sat op"; pill.classList.toggle("ok", ok);
+}
+async function callWorker(payload) {
+  const res = await fetch(cfg.url.replace(/\/+$/, "") + "/structure", {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-app-key": cfg.key },
+    body: JSON.stringify(payload)
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) { const e = new Error(data.error || `HTTP ${res.status}`); e.status = res.status; throw e; }
+  return data;
+}
+$("dictGo").addEventListener("click", async () => {
+  const text = $("dictText").value.trim();
+  if (!text) { setStatus("Skriv eller diktér et par linjer om dagen først."); return; }
+  if (!dictReady()) { setStatus("Dikteringen er ikke sat op endnu. Åbn Indstillinger nederst på siden.", true); $("settings").open = true; return; }
+  if (!navigator.onLine) { setStatus("Du er offline. Teksten bliver stående, så du kan prøve igen senere.", true); return; }
+  const btn = $("dictGo"); btn.disabled = true; setStatus("Claude læser din dag …");
+  try {
+    const res = await callWorker({
+      date: current,
+      weekday: fromKey(current).toLocaleDateString("da-DK", { weekday: "long" }),
+      text,
+      categories: CATS.map(c => ({ id: c.id, name: c.name })),
+      existing: day().blocks.map(b => ({ id: b.id, start: b.start, end: b.end, cat: b.cat, label: b.label }))
+    });
+    const oldById = Object.fromEntries(day().blocks.map(b => [b.id, b]));
+    const blocks = (Array.isArray(res.blocks) ? res.blocks : [])
+      .filter(b => toMin(b.start) != null && toMin(b.end) != null)
+      .map(b => {
+        const old = b.from && oldById[b.from];
+        return { id: old ? old.id : uid(), start: b.start, end: b.end, cat: CAT[b.cat] ? b.cat : "andet", label: String(b.label || "").slice(0, 80), v: old ? old.v || null : null };
+      });
+    if (!blocks.length) { setStatus("Claude fandt ingen blokke i teksten. Prøv at nævne nogle tidspunkter.", true); return; }
+    setBlocks(blocks);
+    $("dictText").value = "";
+    setStatus(`Dagen er opdateret med ${blocks.length} blokke. Giv dem 👍 eller 👎.`);
+  } catch (e) {
+    if (e.status === 401) setStatus("Adgangskoden passer ikke med den i Cloudflare. Tjek Indstillinger.", true);
+    else if (e.status === 429) setStatus("Claude har travlt lige nu. Prøv igen om lidt.", true);
+    else setStatus("Det lykkedes ikke at lave blokke ud af teksten. Prøv igen, evt. med lidt flere tidspunkter.", true);
+  } finally { btn.disabled = false; }
+});
+
+$("saveSettings").addEventListener("click", () => {
+  cfg = { url: $("workerUrl").value.trim(), key: $("appKey").value.trim() };
+  save(CFG_KEY, cfg); renderSettings();
+  setStatus(dictReady() ? "Gemt." : "Gemt, men adressen skal starte med https:// og der skal være en adgangskode.", !dictReady(), "settingsStatus");
+});
+$("testSettings").addEventListener("click", async () => {
+  cfg = { url: $("workerUrl").value.trim(), key: $("appKey").value.trim() };
+  if (!dictReady()) { setStatus("Udfyld adresse (https://…) og adgangskode først.", true, "settingsStatus"); return; }
+  setStatus("Tester …", false, "settingsStatus");
+  try {
+    const res = await fetch(cfg.url.replace(/\/+$/, "") + "/ping", { headers: { "x-app-key": cfg.key } });
+    if (res.status === 401) setStatus("Tjenesten svarer, men adgangskoden passer ikke.", true, "settingsStatus");
+    else if (res.ok) { save(CFG_KEY, cfg); renderSettings(); setStatus("Forbindelsen virker, og indstillingerne er gemt.", false, "settingsStatus"); }
+    else setStatus(`Tjenesten svarede med fejl ${res.status}. Tjek opsætningen i Cloudflare.`, true, "settingsStatus");
+  } catch { setStatus("Kunne ikke nå adressen. Tjek at den er stavet rigtigt, og at ALLOWED_ORIGIN passer.", true, "settingsStatus"); }
+});
+
+// ---------- backup ----------
+$("exportBtn").addEventListener("click", async () => {
+  const json = JSON.stringify({ app: "eftertanke", version: 1, exported: new Date().toISOString(), days }, null, 1);
+  const name = `eftertanke-backup-${todayKey}.json`;
+  const file = new File([json], name, { type: "application/json" });
+  try {
+    if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: name }); setStatus("Backup klar.", false, "backupStatus"); return; }
+  } catch (e) { if (e && e.name === "AbortError") return; }
+  const a = document.createElement("a"); a.href = URL.createObjectURL(file); a.download = name; document.body.append(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  setStatus("Backup gemt.", false, "backupStatus");
+});
+$("importBtn").addEventListener("click", () => $("importFile").click());
+$("importFile").addEventListener("change", async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try {
+    const data = JSON.parse(await f.text());
+    if (!data || typeof data.days !== "object") throw 0;
+    let n = 0;
+    for (const [k, v] of Object.entries(data.days)) if (/^\d{4}-\d{2}-\d{2}$/.test(k) && v && Array.isArray(v.blocks)) { days[k] = v; n++; }
+    persist(); render();
+    setStatus(`Hentede ${n} dage fra backuppen.`, false, "backupStatus");
+  } catch { setStatus("Filen ligner ikke en Eftertanke-backup.", true, "backupStatus"); }
+  e.target.value = "";
+});
+
+// ---------- controls ----------
+$("prevDay").addEventListener("click", () => { current = addDays(current, -1); render(); });
+$("nextDay").addEventListener("click", () => { if (current < todayKey) { current = addDays(current, 1); render(); } });
+$("tplWork").addEventListener("click", () => applyTemplate("arbejde"));
+$("tplOff").addEventListener("click", () => applyTemplate("fri"));
+$("addBlock").addEventListener("click", () => {
+  const bl = day().blocks; const last = bl[bl.length - 1];
+  const start = last ? last.end : "08:00";
+  const sm = toMin(start) ?? 480; const em = Math.min(sm + 60, 1439);
+  setBlocks([...bl, { id: uid(), start, end: `${pad(Math.floor(em / 60))}:${pad(em % 60)}`, cat: "andet", label: "", v: null }]);
+});
+$("clearDay").addEventListener("click", () => { $("confirmClear").hidden = false; });
+$("confirmClear").addEventListener("click", () => setBlocks([]));
+
+// A PWA can stay open for days: jump to the new day when it comes back to the foreground.
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState !== "visible") return;
+  const t = keyOf(new Date());
+  if (t !== todayKey) { if (current === todayKey) current = t; todayKey = t; render(); }
+});
+
+renderSettings();
+render();
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+}
+</script>
+</body>
+</html>
