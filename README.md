@@ -1,7 +1,10 @@
 # Eftertanke
 
 Tidsregnskab med eftertanke: hvilke timer ville du vælge igen?
-Appen installeres fra GitHub Pages som en webapp (PWA) med eget ikon på hjemmeskærmen. Data gemmes kun på telefonen.
+Appen ligger på GitHub Pages og kan installeres på telefonen med eget ikon. Data gemmes kun på telefonen.
+Opdelingen af dagen i blokke klares af en AI-model på Cloudflares gratis kvote. Der kræves ingen betalingsoplysninger.
+
+**Appens adresse:** <https://mr-nielsen.github.io/eftertanke/>
 
 ## Indhold
 
@@ -11,52 +14,44 @@ Appen installeres fra GitHub Pages som en webapp (PWA) med eget ikon på hjemmes
 | `manifest.webmanifest` | App-navn, ikon og fuldskærm |
 | `sw.js` | Gør appen tilgængelig uden net |
 | `icons/` | App-ikoner |
-| `worker/worker.js` | Diktat-tjenesten til Cloudflare. Skal **ikke** ligge på GitHub Pages |
+| `worker/worker.js` | Blok-tjenesten, som skal ligge på Cloudflare |
 
-## 1. Læg appen på GitHub Pages (cirka 5 min)
+## 1. GitHub Pages
 
-1. Opret et nyt repo på GitHub, fx `eftertanke`. Det må gerne være offentligt, for der ligger ingen hemmeligheder i det.
-2. Upload `index.html`, `manifest.webmanifest`, `sw.js` og mappen `icons` (træk dem ind under *Add file → Upload files*).
-3. Gå til *Settings → Pages*. Under *Source* vælger du *Deploy from a branch*, branch `main` og mappen `/ (root)`. Klik *Save*.
-4. Efter et minut ligger appen på `https://DIT-BRUGERNAVN.github.io/eftertanke/`.
+*Settings → Pages → Source: Deploy from a branch → main / (root) → Save.*
 
-## 2. Hent en API-nøgle hos Anthropic (cirka 5 min)
+## 2. Blok-tjenesten på Cloudflare (gratis, cirka 10 min)
 
-1. Log ind på <https://console.anthropic.com>. Det er en separat konto fra dit Claude-abonnement.
-2. Tilføj betaling under *Billing*. En dags diktering koster en brøkdel af en øre, så et lille beløb rækker længe. Sæt gerne en månedlig grænse.
-3. Opret en nøgle under *API Keys*, og kopier den.
-
-## 3. Opret diktat-tjenesten på Cloudflare (cirka 10 min)
-
-1. Opret en gratis konto på <https://dash.cloudflare.com>.
-2. Gå til *Workers & Pages → Create → Create Worker*, og giv den navnet `eftertanke`. Klik *Deploy*.
-3. Klik *Edit code*, slet alt, og indsæt hele indholdet af `worker/worker.js`. Klik *Deploy*.
-4. Gå til workerens *Settings → Variables and Secrets*, og tilføj:
-   - `ANTHROPIC_API_KEY`: typen *Secret*, værdien er nøglen fra trin 2.
+1. Opret en gratis konto på <https://dash.cloudflare.com>. Der skal ikke bruges kort.
+2. Gå til **Compute (Workers) → Workers & Pages → Create → Start with Hello World**. Kald workeren `eftertanke`, og klik **Deploy**.
+3. Klik **Edit code**. Slet alt, indsæt hele indholdet af `worker/worker.js`, og klik **Deploy**.
+4. Gå tilbage til workeren → **Settings → Bindings → Add binding → Workers AI**. Variablens navn skal være præcis `AI`. Klik **Add binding**.
+5. Under **Settings → Variables and Secrets** tilføjer du:
    - `APP_KEY`: typen *Secret*. Vælg selv en lang adgangskode, fx fire tilfældige ord.
-   - `ALLOWED_ORIGIN`: typen *Text*, værdien er `https://DIT-BRUGERNAVN.github.io`. Kun domænet, uden `/eftertanke` og uden `/` til sidst.
-5. Notér workerens adresse. Den ser ud som `https://eftertanke.DIT-NAVN.workers.dev`.
+   - `ALLOWED_ORIGIN`: typen *Text*, med værdien `https://mr-nielsen.github.io`
+6. Kopiér workerens adresse (øverst, `https://eftertanke.….workers.dev`).
 
-## 4. Forbind appen og installér den på telefonen
+Den gratis kvote er 10.000 "neurons" om dagen. Én opdeling af en dag bruger cirka 200, så kvoten rækker til omkring 50 opdelinger om dagen. Bliver den brugt op, stopper tjenesten bare til næste dag. Den koster aldrig penge.
 
-1. Åbn appens adresse på telefonen (iPhone: brug Safari).
-2. Rul ned til *Indstillinger og backup*. Indsæt workerens adresse og din `APP_KEY`, og tryk *Test forbindelsen*.
-3. Installér appen:
-   - **iPhone:** Del-knappen → *Føj til hjemmeskærm*.
-   - **Android:** menuen ⋮ → *Installer app* / *Føj til startskærm*.
+## 3. Forbind appen og installér den
 
-Åbn den fremover fra ikonet. Indstillingerne skal indtastes i den installerede app. På iPhone har den sin egen lagerplads, adskilt fra Safari.
+1. Åbn <https://mr-nielsen.github.io/eftertanke/> på telefonen (iPhone: brug Safari).
+2. Installér den:
+   - **iPhone:** Del-knappen → *Føj til hjemmeskærm*
+   - **Android:** menuen ⋮ → *Installer app*
+3. Åbn appen fra ikonet, rul ned til *Indstillinger og backup*, indsæt workerens adresse og din `APP_KEY`, og tryk *Test forbindelsen*.
 
 ## Backup
 
-Alt ligger kun på telefonen. Brug *Gem backup* en gang imellem, og gem filen i Filer/iCloud Drive eller Google Drev. *Hent backup* lægger dagene tilbage, også på en ny telefon.
+Alt ligger kun på telefonen. Brug *Gem backup* en gang imellem. *Hent backup* lægger dagene tilbage, også på en ny telefon.
 
 ## Opdatering af appen
 
-Når du ændrer `index.html`, skal du også hæve versionsnummeret øverst i `sw.js` (`eftertanke-v1` → `eftertanke-v2`). Så henter telefonen den nye version. Ændringen slår igennem anden gang, du åbner appen.
+Når `index.html` ændres, skal versionsnummeret øverst i `sw.js` også hæves. Ændringen slår igennem anden gang, appen åbnes.
 
 ## Fejlfinding
 
-- **"Kunne ikke nå adressen"**: Tjek workerens adresse og at `ALLOWED_ORIGIN` passer præcist med domænet i browserens adresselinje.
-- **"Adgangskoden passer ikke"**: `APP_KEY` i Cloudflare og koden i appen skal være ens.
-- **"Claude svarede ikke som forventet"**: Tjek at API-nøglen er gyldig, og at der er kredit på kontoen. Under workerens *Logs* i Cloudflare kan du se den præcise fejl.
+- **"Kunne ikke nå adressen":** Tjek workerens adresse, og at `ALLOWED_ORIGIN` er præcis `https://mr-nielsen.github.io`.
+- **"Adgangskoden passer ikke":** `APP_KEY` i Cloudflare og koden i appen skal være ens.
+- **"Det lykkedes ikke at lave blokke":** Tjek at bindingen hedder `AI`. Under workerens **Logs** i Cloudflare kan du se den præcise fejl.
+- **Svarene er for upræcise:** Sæt variablen `MODEL` til en anden model fra Cloudflares katalog, fx `@cf/mistralai/mistral-small-3.1-24b-instruct`.

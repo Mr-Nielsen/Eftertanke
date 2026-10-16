@@ -167,7 +167,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
   <section class="dictate" aria-labelledby="dictTitle">
     <h2 id="dictTitle">Fortæl om dagen</h2>
-    <p class="hint">Tryk på mikrofonen på tastaturet og fortæl. Fx: “Mødet trak ud til halv tolv, frokost ved skrivebordet, hentede ungerne kl. 16, løb en tur 19–19.45, resten foran tv’et.” Claude laver det om til blokke og retter skabelonen til. Skriv kun groft om arbejdet, aldrig om patienter eller kolleger.</p>
+    <p class="hint">Skriv kort, eller diktér med tastaturets mikrofon. Fx: “Mødet trak ud til halv tolv, frokost ved skrivebordet, hentede ungerne kl. 16, løb en tur 19–19.45, resten foran tv’et.” AI'en deler det op i blokke og retter skabelonen til. Skriv kun groft om arbejdet, aldrig om patienter eller kolleger.</p>
     <textarea id="dictText" placeholder="Hvad gik dagen med?"></textarea>
     <div class="row">
       <button class="btn primary" id="dictGo">Lav blokke</button>
@@ -184,11 +184,11 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   </section>
 
   <details class="settings" id="settings">
-    <summary>Indstillinger og backup <span class="pill" id="dictPill">Diktering ikke sat op</span></summary>
+    <summary>Indstillinger og backup <span class="pill" id="dictPill">AI ikke sat op</span></summary>
     <div class="inner">
       <div class="field">
-        <label for="workerUrl">Adresse på din diktat-tjeneste</label>
-        <input id="workerUrl" type="url" inputmode="url" autocomplete="off" placeholder="https://eftertanke.dit-navn.workers.dev">
+        <label for="workerUrl">Adresse på din blok-tjeneste (Cloudflare)</label>
+        <input id="workerUrl" type="url" inputmode="url" autocomplete="off" placeholder="https://eftertanke.mr-nielsen.workers.dev">
       </div>
       <div class="field">
         <label for="appKey">Adgangskode</label>
@@ -444,7 +444,7 @@ const dictReady = () => /^https:\/\//.test(cfg.url || "") && (cfg.key || "").len
 function renderSettings() {
   $("workerUrl").value = cfg.url || ""; $("appKey").value = cfg.key || "";
   const ok = dictReady(); const pill = $("dictPill");
-  pill.textContent = ok ? "Diktering klar" : "Diktering ikke sat op"; pill.classList.toggle("ok", ok);
+  pill.textContent = ok ? "AI klar" : "AI ikke sat op"; pill.classList.toggle("ok", ok);
 }
 async function callWorker(payload) {
   const res = await fetch(cfg.url.replace(/\/+$/, "") + "/structure", {
@@ -459,9 +459,9 @@ async function callWorker(payload) {
 $("dictGo").addEventListener("click", async () => {
   const text = $("dictText").value.trim();
   if (!text) { setStatus("Skriv eller diktér et par linjer om dagen først."); return; }
-  if (!dictReady()) { setStatus("Dikteringen er ikke sat op endnu. Åbn Indstillinger nederst på siden.", true); $("settings").open = true; return; }
+  if (!dictReady()) { setStatus("AI-opdelingen er ikke sat op endnu. Åbn Indstillinger nederst på siden.", true); $("settings").open = true; return; }
   if (!navigator.onLine) { setStatus("Du er offline. Teksten bliver stående, så du kan prøve igen senere.", true); return; }
-  const btn = $("dictGo"); btn.disabled = true; setStatus("Claude læser din dag …");
+  const btn = $("dictGo"); btn.disabled = true; setStatus("AI'en deler dagen op …");
   try {
     const res = await callWorker({
       date: current,
@@ -477,13 +477,13 @@ $("dictGo").addEventListener("click", async () => {
         const old = b.from && oldById[b.from];
         return { id: old ? old.id : uid(), start: b.start, end: b.end, cat: CAT[b.cat] ? b.cat : "andet", label: String(b.label || "").slice(0, 80), v: old ? old.v || null : null };
       });
-    if (!blocks.length) { setStatus("Claude fandt ingen blokke i teksten. Prøv at nævne nogle tidspunkter.", true); return; }
+    if (!blocks.length) { setStatus("AI'en fandt ingen blokke i teksten. Prøv at nævne nogle tidspunkter.", true); return; }
     setBlocks(blocks);
     $("dictText").value = "";
     setStatus(`Dagen er opdateret med ${blocks.length} blokke. Giv dem 👍 eller 👎.`);
   } catch (e) {
     if (e.status === 401) setStatus("Adgangskoden passer ikke med den i Cloudflare. Tjek Indstillinger.", true);
-    else if (e.status === 429) setStatus("Claude har travlt lige nu. Prøv igen om lidt.", true);
+    else if (e.status === 429) setStatus("Dagens gratis AI-kvote er brugt, eller tjenesten har travlt. Prøv igen senere.", true);
     else setStatus("Det lykkedes ikke at lave blokke ud af teksten. Prøv igen, evt. med lidt flere tidspunkter.", true);
   } finally { btn.disabled = false; }
 });

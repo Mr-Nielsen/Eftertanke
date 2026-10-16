@@ -1,6 +1,6 @@
 // Eftertanke service worker: keeps the app working offline.
 // Bump VERSION whenever you change index.html, so phones pick up the new version.
-const VERSION = "eftertanke-v1";
+const VERSION = "eftertanke-v2";
 const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icons/icon-192.png", "./icons/icon-512.png", "./icons/apple-touch-icon.png"];
 
 self.addEventListener("install", e => {
